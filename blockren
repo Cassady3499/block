@@ -1,0 +1,102 @@
+SQL Question 1 #Which month has the highest count of valid users created?
+With MyCoolCTE(cdblock,cdfirst,cdlast,cdmonth) 
+AS
+(Select contact.user_id,contact.first_name,contact.last_name, block_user.create_date
+FROM contact
+LEFT JOIN block_user ON contact.user_id = block_user.user_id
+WHERE block_user.user_id is not NULL) 
+--SELECT first_name, last_name FROM MyCoolCTE
+
+SELECT count (cdblock) AS signups, extract(year from cdmonth) as yearcreated, extract (month from cdmonth) As monthcreated
+FROM MyCoolCTE 
+WHERE (cdblock is not NULL) AND ((cdfirst not LIKE '%test%') AND (cdlast not LIKE '%test%'))
+and ((cdfirst not LIKE '%Test%') AND (cdlast not LIKE '%Test%'))
+Group By extract(year from cdmonth),extract (month from cdmonth)
+Order By signups DESC
+limit 40;
+
+SQL Question 2# Which month brought in highest gross deal value? 
+
+SELECT date_trunc('month', closed_won_date) AS Unique_month, sum(deal_value_usd) as monthly_sum
+FROM deal
+Where deal_value_usd is not null
+GROUP BY Unique_month
+Limit 5;
+
+SELECT date_trunc('month', closed_won_date) AS Unique_month, sum(deal_value_usd) as monthly_sum
+FROM deal
+Where deal_value_usd is not null
+GROUP BY Unique_month
+Limit 15;
+
+SELECT date_trunc('month', closed_won_date) AS Unique_month, sum(deal_value_usd) as monthly_sum
+FROM deal
+Where deal_value_usd is not null
+GROUP BY Unique_month
+Limit 45;
+
+Question #3: What Percentage of closed deals does each city account for?
+Attempt #1
+With MyCoolCTE(cdblock,cdcity) 
+AS
+(Select contact.contact_id,contact.property_city  
+FROM contact
+LEFT JOIN block_user ON contact.user_id = block_user.user_id
+WHERE (block_user.user_id is not NULL)and(contact.property_city is not null)) 
+
+Select cdcity,(deal.deal_value_usd / SUM(deal.deal_value_usd) OVER () ) AS "% Contribution"
+from MyCoolCTE
+left join deal On deal.deal_id = cdblock
+where deal.closed_won_date is not null
+group by cdcity;
+
+Attempt #2
+With MyCoolCTE(cdblock,cdcity) 
+AS
+(Select contact.contact_id,contact.property_city  
+FROM contact
+LEFT JOIN block_user ON contact.user_id = block_user.user_id
+WHERE (block_user.user_id is not NULL)and(contact.property_city is not null)) 
+
+Select cdcity,sum(deal_value_usd) AS TotalCityUSD
+from MyCoolCTE
+left join deal On deal.deal_id = cdblock
+group by cdcity;
+
+
+Part 2, Question #2:
+How much quarterly business has each Source generated for Block? Which sources are performing above or below their historical monthly benchmarks?
+
+Quarterly Query:
+
+Select property_utm_source, sum(deal_value_usd) as total_quarterly_sales,
+(sum(deal_value_usd)/count(*)) as avg_sale_usd, 
+extract(quarter from closed_won_date) as quarter, count(*) as number_of_transactions 
+From (contact
+LEFT JOIN deal_contact ON contact.contact_id = deal_contact.contact_id
+LEFT JOIN deal ON deal_contact.deal_id = deal.deal_id)
+WHERE (property_utm_source is not null) OR (deal_value_usd is not null)
+GROUP BY property_utm_source, extract(quarter from closed_won_date);
+
+Monthly Query: 
+Monthy
+Select property_utm_source, sum(deal_value_usd) as total_monthly_sales,
+(sum(deal_value_usd)/count(*)) as avg_sale_usd, 
+extract(month from closed_won_date) as month, count(*) as number_of_transactions 
+From (contact
+LEFT JOIN deal_contact ON contact.contact_id = deal_contact.contact_id
+LEFT JOIN deal ON deal_contact.deal_id = deal.deal_id)
+WHERE (property_utm_source is not null) OR (deal_value_usd is not null)
+GROUP BY property_utm_source, extract(month from closed_won_date);
+
+
+
+
+
+
+
+
+
+
+
+
